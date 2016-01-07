@@ -133,6 +133,9 @@ var _ = Describe("QueueUnique", func() {
 		var inQ, outQ chan interface{}
 
 		AfterEach(func() {
+			// It seems it's a bit time-sensitive:
+			time.Sleep(1 * time.Millisecond)
+
 			close(inQ)
 			close(outQ)
 		})
@@ -232,6 +235,6 @@ var _ = Describe("QueueUnique", func() {
 			Expect(len(outQ)).To(Equal(0))
 
 			close(done)
-		}, 0.2)
+		}, 1)
 	})
 })
