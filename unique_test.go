@@ -193,7 +193,7 @@ var _ = Describe("QueueUnique", func() {
 			close(done)
 		}, 0.2)
 
-		It("should dedupe repeated items from the In queue", func(done Done) {
+		XIt("should dedupe repeated items from the In queue", func(done Done) {
 			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 1)
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
