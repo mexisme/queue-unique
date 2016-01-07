@@ -82,7 +82,7 @@ var _ = Describe("QueueUnique", func() {
 		outQ := make(OutQueue, 1000)
 		uq = (&UniqueQueue{
 			MatcherID: matcherID,
-			Out:        outQ,
+			Out:       outQ,
 		}).Init()
 
 		Expect(uq.Out).ToNot(BeNil())
