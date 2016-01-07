@@ -38,8 +38,58 @@ var _ = Describe("QueueUnique", func() {
 
 		Expect(uq.uniqueIDs).To(BeEmpty())
 		Expect(uq.feeder).To(BeEmpty())
+		// Expect(uq.In).To(BeEmpty())
+		// Expect(uq.Out).To(BeEmpty())
+	})
+
+	It("should auto-create In queue when not provided", func() {
+		inQ := make(InQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+		}).Init()
+
+		Expect(uq.In).ToNot(BeNil())
 		Expect(uq.In).To(BeEmpty())
+		Expect(uq.In).ToNot(Equal(inQ))
+	})
+
+	It("should use provided In queue", func() {
+		inQ := make(InQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+			In:        inQ,
+		}).Init()
+
+		Expect(uq.In).ToNot(BeNil())
+		Expect(uq.In).To(BeEmpty())
+		Expect(uq.In).To(Equal(inQ))
+
+		//close(inQ)
+	})
+
+	It("should auto-create Out queue when not provided", func() {
+		outQ := make(OutQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+		}).Init()
+
+		Expect(uq.Out).ToNot(BeNil())
 		Expect(uq.Out).To(BeEmpty())
+		Expect(uq.Out).ToNot(Equal(outQ))
+	})
+
+	It("should use provided Out queue", func() {
+		outQ := make(OutQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+			Out:        outQ,
+		}).Init()
+
+		Expect(uq.Out).ToNot(BeNil())
+		Expect(uq.Out).To(BeEmpty())
+		Expect(uq.Out).To(Equal(outQ))
+
+		close(outQ)
 	})
 
 	var _ = Context("when pushing to the feeder queue", func() {
@@ -131,22 +181,11 @@ var _ = Describe("QueueUnique", func() {
 			&Fake{id: "3", value: "89ab"},
 			&Fake{id: "4", value: "cdef"},
 		}
-		var inQ, outQ chan interface{}
-
-		AfterEach(func() {
-			// It seems it's a bit time-sensitive:
-			time.Sleep(1 * time.Millisecond)
-
-			close(inQ)
-			close(outQ)
-		})
 
 		It("should panic when the Out queue < 1", func() {
-			inQ, outQ = make(chan interface{}, DefaultQueueLength), make(chan interface{})
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
-				In:        inQ,
-				Out:       outQ,
+				Out:       make(OutQueue),
 			}).Init()
 
 			Expect(func() {
@@ -155,20 +194,15 @@ var _ = Describe("QueueUnique", func() {
 		})
 
 		It("should forward items from In to Out channels", func(done Done) {
-			inQ, outQ = make(chan interface{}, DefaultQueueLength), make(chan interface{}, DefaultQueueLength)
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
-				In:        inQ,
-				Out:       outQ,
 			}).Init()
 
 			for _, f := range fakedArr {
-				inQ <- f
+				uq.In <- f
 			}
 			Eventually(len(uq.In)).Should(Equal(len(fakedArr)))
 			Eventually(len(uq.Out)).Should(Equal(0))
-			Eventually(len(inQ)).Should(Equal(len(fakedArr)))
-			Eventually(len(outQ)).Should(Equal(0))
 
 			uq.Run()
 
@@ -177,48 +211,40 @@ var _ = Describe("QueueUnique", func() {
 
 			Eventually(len(uq.In)).Should(Equal(0))
 			Eventually(len(uq.Out)).Should(Equal(len(fakedArr)))
-			Eventually(len(inQ)).Should(Equal(0))
-			Eventually(len(outQ)).Should(Equal(len(fakedArr)))
 
 			for _, f := range fakedArr {
-				Eventually(outQ).Should(Receive(Equal(f)))
+				Eventually(uq.Out).Should(Receive(Equal(f)))
 			}
 
 			Eventually(len(uq.In)).Should(Equal(0))
 			Eventually(len(uq.Out)).Should(Equal(0))
 			Eventually(len(uq.feeder)).Should(Equal(0))
-			Eventually(len(inQ)).Should(Equal(0))
-			Eventually(len(outQ)).Should(Equal(0))
 
 			close(done)
-		}, 0.2)
+		}, 1)
 
 		It("should dedupe repeated items from the In queue", func(done Done) {
-			inQ, outQ = make(chan interface{}, DefaultQueueLength), make(chan interface{}, 1)
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
-				In:        inQ,
-				Out:       outQ,
+				Out:       make(OutQueue, 1),
 			}).Init()
 			dupes := 5
 			fakedArrLen := len(fakedArr)
-			fakedArrDupesOutQLen := (fakedArrLen * dupes) + cap(outQ)
+			fakedArrDupesOutQLen := (fakedArrLen * dupes) + cap(uq.Out)
 
 			// Because the outQ has a buffer-size, we have to fill it before we start the test
-			for i := 0; i < cap(outQ); i++ {
-				inQ <- &Fake{id: "filler", value: "filler"}
+			for i := 0; i < cap(uq.Out); i++ {
+				uq.In <- &Fake{id: "filler", value: "filler"}
 			}
 
 			for i := 0; i < dupes; i++ {
 				for _, f := range fakedArr {
-					inQ <- f
+					uq.In <- f
 				}
 			}
 
 			Eventually(len(uq.In)).Should(Equal(fakedArrDupesOutQLen))
 			Eventually(len(uq.Out)).Should(Equal(0))
-			Eventually(len(inQ)).Should(Equal(fakedArrDupesOutQLen))
-			Eventually(len(outQ)).Should(Equal(0))
 
 			uq.Run()
 
@@ -227,25 +253,22 @@ var _ = Describe("QueueUnique", func() {
 
 			Eventually(len(uq.uniqueIDs)).Should(Equal(fakedArrLen), "uq.uniqueIDs %#v", uq.uniqueIDs)
 			Eventually(len(uq.In)).Should(Equal(0))
-			Eventually(len(inQ)).Should(Equal(0))
 
 			// Empty-out the filler entries
-			for i := 0; i < cap(outQ); i++ {
-				Eventually(outQ).Should(Receive(Equal(
+			for i := 0; i < cap(uq.Out); i++ {
+				Eventually(uq.Out).Should(Receive(Equal(
 					&Fake{id: "filler", value: "filler"},
 				)))
 			}
 
 			for _, f := range fakedArr {
-				Eventually(outQ).Should(Receive(Equal(f)))
+				Eventually(uq.Out).Should(Receive(Equal(f)))
 			}
 
 			Eventually(len(uq.uniqueIDs)).Should(Equal(0), "uq.uniqueIDs %#v", uq.uniqueIDs)
 			Eventually(len(uq.In)).Should(Equal(0))
 			Eventually(len(uq.Out)).Should(Equal(0))
 			Eventually(len(uq.feeder)).Should(Equal(0))
-			Eventually(len(inQ)).Should(Equal(0))
-			Eventually(len(outQ)).Should(Equal(0))
 
 			close(done)
 		}, 2)

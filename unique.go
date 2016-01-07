@@ -10,10 +10,13 @@ const (
 	DefaultQueueLength = 100
 )
 
+type InQueue chan interface{}
+type OutQueue chan interface{}
+
 type UniqueQueue struct {
 	MatcherID   func(interface{}) string // Callback to get an ID that can be used to identify whether an incoming item is already in the queue
-	In          <-chan interface{}       // Incoming Item queue
-	Out         chan<- interface{}       // Queue for workers
+	In          InQueue                  // Incoming Item queue
+	Out         OutQueue                 // Queue for workers
 	QueueLength int
 	uniqueIDs   map[string]bool  // Set of URLs, ordered by incoming
 	feeder      chan interface{} // Internal queue for determining when to pop an item off the `uniqueIDs` set
@@ -22,8 +25,21 @@ type UniqueQueue struct {
 }
 
 func (q *UniqueQueue) Init() *UniqueQueue {
+	// TODO: Implement this, probably using reflection (?):
+	// if q.MatcherID == nil {
+	// 	q.MatcherID = func(val interface{}) string {
+	// 		return val.String()
+	// 	}
+	// }
+
 	if q.QueueLength == 0 {
 		q.QueueLength = DefaultQueueLength
+	}
+	if q.In == nil {
+		q.In = make(chan interface{}, q.QueueLength)
+	}
+	if q.Out == nil {
+		q.Out = make(chan interface{}, q.QueueLength)
 	}
 
 	q.feederOk = true
@@ -49,9 +65,9 @@ func (q *UniqueQueue) Close() {
 
 // Push the data from one Q to the next, uniquifying on the URL
 func (q *UniqueQueue) fifo() {
+	defer q.wg.Done()
 	// If the In is closed, there's nothing incoming:
 	defer close(q.feeder)
-	defer q.wg.Done()
 
 	inQueueOk := true
 	counter := 0
@@ -100,7 +116,7 @@ func (q *UniqueQueue) pushUnique(item interface{}) bool {
 	// We don't have this item queued
 	if q.uniqueIDs[id] {
 		log.WithFields(log.Fields{
-			"ID": id,
+			"ID":   id,
 			"item": item,
 		}).Debug("Item is already queued")
 		return false
