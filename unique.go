@@ -10,10 +10,13 @@ const (
 	DefaultQueueLength = 100
 )
 
+type InQueue <-chan interface{}
+type OutQueue chan<- interface{}
+
 type UniqueQueue struct {
 	MatcherID   func(interface{}) string // Callback to get an ID that can be used to identify whether an incoming item is already in the queue
-	In          <-chan interface{}       // Incoming Item queue
-	Out         chan<- interface{}       // Queue for workers
+	In          InQueue                  // Incoming Item queue
+	Out         OutQueue                 // Queue for workers
 	QueueLength int
 	uniqueIDs   map[string]bool  // Set of URLs, ordered by incoming
 	feeder      chan interface{} // Internal queue for determining when to pop an item off the `uniqueIDs` set
@@ -113,7 +116,7 @@ func (q *UniqueQueue) pushUnique(item interface{}) bool {
 	// We don't have this item queued
 	if q.uniqueIDs[id] {
 		log.WithFields(log.Fields{
-			"ID": id,
+			"ID":   id,
 			"item": item,
 		}).Debug("Item is already queued")
 		return false
