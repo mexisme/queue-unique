@@ -22,8 +22,21 @@ type UniqueQueue struct {
 }
 
 func (q *UniqueQueue) Init() *UniqueQueue {
+	// TODO: Implement this, probably using reflection (?):
+	// if q.MatcherID == nil {
+	// 	q.MatcherID = func(val interface{}) string {
+	// 		return val.String()
+	// 	}
+	// }
+
 	if q.QueueLength == 0 {
 		q.QueueLength = DefaultQueueLength
+	}
+	if q.In == nil {
+		q.In = make(chan interface{}, q.QueueLength)
+	}
+	if q.Out == nil {
+		q.Out = make(chan interface{}, q.QueueLength)
 	}
 
 	q.feederOk = true
@@ -49,9 +62,9 @@ func (q *UniqueQueue) Close() {
 
 // Push the data from one Q to the next, uniquifying on the URL
 func (q *UniqueQueue) fifo() {
+	defer q.wg.Done()
 	// If the In is closed, there's nothing incoming:
 	defer close(q.feeder)
-	defer q.wg.Done()
 
 	inQueueOk := true
 	counter := 0
