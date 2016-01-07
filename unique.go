@@ -10,8 +10,8 @@ const (
 	DefaultQueueLength = 100
 )
 
-type InQueue <-chan interface{}
-type OutQueue chan<- interface{}
+type InQueue chan interface{}
+type OutQueue chan interface{}
 
 type UniqueQueue struct {
 	MatcherID   func(interface{}) string // Callback to get an ID that can be used to identify whether an incoming item is already in the queue
