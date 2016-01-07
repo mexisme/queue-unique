@@ -224,6 +224,7 @@ var _ = Describe("QueueUnique", func() {
 				Expect(f).To(Equal(fakeOut))
 			}
 
+			Expect(len(uq.uniqueIDs)).To(Equal(0), "uq.uniqueIDs %#v", uq.uniqueIDs)
 			Expect(len(uq.In)).To(Equal(0))
 			Expect(len(uq.Out)).To(Equal(0))
 			Expect(len(uq.feeder)).To(Equal(0))
