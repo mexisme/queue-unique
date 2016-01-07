@@ -1,6 +1,10 @@
 package queue
 
 import (
+	//"os"
+
+	log "gopkg.in/Sirupsen/logrus.v0"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -11,6 +15,10 @@ type Fake struct {
 }
 
 var _ = Describe("QueueUnique", func() {
+	//log.SetOutput(os.Stderr)
+	log.SetOutput(GinkgoWriter)
+	log.SetLevel(log.DebugLevel)
+
 	var uq *UniqueQueue
 	matcherID := func(fake interface{}) string {
 		return fake.(*Fake).id
