@@ -95,7 +95,10 @@ func (q *UniqueQueue) pushUnique(item interface{}) bool {
 
 	// We don't have this item queued
 	if q.uniqueIDs[id] {
-		log.Debug("Item is already queued")
+		log.WithFields(log.Fields{
+			"ID": id,
+			"item": item,
+		}).Debug("Item is already queued")
 		return false
 	}
 
