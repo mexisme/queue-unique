@@ -31,6 +31,9 @@ func (q *UniqueQueue) Init() *UniqueQueue {
 }
 
 func (q *UniqueQueue) Run() {
+	if cap(q.Out) == 0 {
+		panic("Outgoing queue needs to be > 0 to avoid deadlocks")
+	}
 	q.wg.Add(1)
 	go q.fifo()
 }

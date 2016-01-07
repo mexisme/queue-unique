@@ -137,6 +137,19 @@ var _ = Describe("QueueUnique", func() {
 			close(outQ)
 		})
 
+		It("should panic when the Out queue < 1", func() {
+			inQ, outQ = make(chan interface{}, 100), make(chan interface{})
+			uq = (&UniqueQueue{
+				MatcherID: matcherID,
+				In:        inQ,
+				Out:       outQ,
+			}).Init()
+
+			Expect(func() {
+				uq.Run()
+			}).To(Panic())
+		})
+
 		It("should forward items from In to Out channels", func(done Done) {
 			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 100)
 			uq = (&UniqueQueue{
