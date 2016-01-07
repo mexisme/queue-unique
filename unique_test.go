@@ -38,8 +38,58 @@ var _ = Describe("QueueUnique", func() {
 
 		Expect(uq.uniqueIDs).To(BeEmpty())
 		Expect(uq.feeder).To(BeEmpty())
+		// Expect(uq.In).To(BeEmpty())
+		// Expect(uq.Out).To(BeEmpty())
+	})
+
+	It("should auto-create In queue when not provided", func() {
+		inQ := make(InQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+		}).Init()
+
+		Expect(uq.In).ToNot(BeNil())
 		Expect(uq.In).To(BeEmpty())
+		Expect(uq.In).ToNot(Equal(inQ))
+	})
+
+	It("should use provided In queue", func() {
+		inQ := make(InQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+			In:        inQ,
+		}).Init()
+
+		Expect(uq.In).ToNot(BeNil())
+		Expect(uq.In).To(BeEmpty())
+		Expect(uq.In).To(Equal(inQ))
+
+		//close(inQ)
+	})
+
+	It("should auto-create Out queue when not provided", func() {
+		outQ := make(OutQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+		}).Init()
+
+		Expect(uq.Out).ToNot(BeNil())
 		Expect(uq.Out).To(BeEmpty())
+		Expect(uq.Out).ToNot(Equal(outQ))
+	})
+
+	It("should use provided Out queue", func() {
+		outQ := make(OutQueue, 1000)
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+			Out:        outQ,
+		}).Init()
+
+		Expect(uq.Out).ToNot(BeNil())
+		Expect(uq.Out).To(BeEmpty())
+		Expect(uq.Out).To(Equal(outQ))
+
+		close(outQ)
 	})
 
 	var _ = Context("when pushing to the feeder queue", func() {
