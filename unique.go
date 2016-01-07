@@ -56,7 +56,7 @@ func (q *UniqueQueue) fifo() {
 				counter++
 				log.WithFields(log.Fields{
 					"Count": counter,
-				}).Debug("Found a new item")
+				}).Debug("Incoming item")
 				q.pushUnique(newItem)
 			}
 
@@ -102,7 +102,7 @@ func (q *UniqueQueue) pushUnique(item interface{}) bool {
 	log.WithFields(log.Fields{
 		"feeder":    len(q.feeder),
 		"uniqueIDs": len(q.uniqueIDs),
-	}).Debug("Internal Queue Lengths")
+	}).Debug("Incoming Queue Lengths")
 
 	return true
 }
@@ -125,6 +125,11 @@ func (q *UniqueQueue) popTo(sendTo func(interface{})) {
 
 		sendTo(item)
 		delete(q.uniqueIDs, id) // drop it from the set
+
+		log.WithFields(log.Fields{
+			"feeder":    len(q.feeder),
+			"uniqueIDs": len(q.uniqueIDs),
+		}).Debug("Outgoing Queue Lengths")
 
 	default:
 		// We don't want this to block the rest of the loop
