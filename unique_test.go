@@ -124,30 +124,45 @@ var _ = Describe("QueueUnique", func() {
 	})
 
 	var _ = Context("", func() {
+		fakedArr := [](*Fake){
+			&Fake{id: "1", value: "0123"},
+			&Fake{id: "2", value: "4567"},
+			&Fake{id: "3", value: "89ab"},
+			&Fake{id: "4", value: "cdef"},
+		}
 		var inQ, outQ chan interface{}
 
 		BeforeEach(func() {
-			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 1)
+			inQ, outQ = make(chan interface{}, 100), make(chan interface{})
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
-				In: inQ,
-				Out: outQ,
+				In:        inQ,
+				Out:       outQ,
 			}).Init()
 			uq.Run()
 		})
 
+		AfterEach(func() {
+			close(inQ)
+			close(outQ)
+		})
+
 		It("test", func(done Done) {
-			inQ <- faked
-			inQ <- faked
-			Expect(len(outQ)).To(Equal(2))
+			for _, f := range fakedArr {
+				inQ <- f
+			}
+			//Expect(len(uq.In)).To(Equal(len(fakedArr)))
+			//Expect(len(uq.Out)).To(Equal(len(fakedArr)))
+			//Expect(len(uq.feeder)).To(Equal(len(fakedArr)))
+			//Expect(len(inQ)).To(Equal(len(fakedArr)))
+			//Expect(len(outQ)).To(Equal(len(fakedArr)))
 
-			fake2 := (<-outQ).(*Fake)
-			Expect(faked).To(Equal(fake2))
-
-			fake2 = (<-outQ).(*Fake)
-			Expect(faked).To(Equal(fake2))
+			for _, f := range fakedArr {
+				fakeOut := (<-outQ).(*Fake)
+				Expect(f).To(Equal(fakeOut))
+			}
 
 			close(done)
-		}, 20)
+		}, 0.2)
 	})
 })
