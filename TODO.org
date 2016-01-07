@@ -1,4 +1,7 @@
 * Tasks
 ** TODO README.md
 ** TODO Doc-comments
-* TODO 
+** DONE Fix queue tests
+   :LOGBOOK:
+   - State "DONE"       from "TODO"       [2016-01-08 Fri 00:51]
+   :END:
