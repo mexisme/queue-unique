@@ -6,6 +6,10 @@ import (
 	log "gopkg.in/Sirupsen/logrus.v0"
 )
 
+const (
+	DefaultQueueLength = 100
+)
+
 type UniqueQueue struct {
 	MatcherID   func(interface{}) string // Callback to get an ID that can be used to identify whether an incoming item is already in the queue
 	In          <-chan interface{}       // Incoming Item queue
@@ -19,7 +23,7 @@ type UniqueQueue struct {
 
 func (q *UniqueQueue) Init() *UniqueQueue {
 	if q.QueueLength == 0 {
-		q.QueueLength = 100
+		q.QueueLength = DefaultQueueLength
 	}
 
 	q.feederOk = true

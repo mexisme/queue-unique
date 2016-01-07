@@ -142,7 +142,7 @@ var _ = Describe("QueueUnique", func() {
 		})
 
 		It("should panic when the Out queue < 1", func() {
-			inQ, outQ = make(chan interface{}, 100), make(chan interface{})
+			inQ, outQ = make(chan interface{}, DefaultQueueLength), make(chan interface{})
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
 				In:        inQ,
@@ -155,7 +155,7 @@ var _ = Describe("QueueUnique", func() {
 		})
 
 		It("should forward items from In to Out channels", func(done Done) {
-			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 100)
+			inQ, outQ = make(chan interface{}, DefaultQueueLength), make(chan interface{}, DefaultQueueLength)
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
 				In:        inQ,
@@ -194,7 +194,7 @@ var _ = Describe("QueueUnique", func() {
 		}, 0.2)
 
 		It("should dedupe repeated items from the In queue", func(done Done) {
-			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 1)
+			inQ, outQ = make(chan interface{}, DefaultQueueLength), make(chan interface{}, 1)
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
 				In:        inQ,
