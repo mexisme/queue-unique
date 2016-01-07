@@ -3,6 +3,7 @@ package queue
 import (
 	//"os"
 	"time"
+
 	log "gopkg.in/Sirupsen/logrus.v0"
 
 	. "github.com/onsi/ginkgo"
@@ -164,36 +165,35 @@ var _ = Describe("QueueUnique", func() {
 			for _, f := range fakedArr {
 				inQ <- f
 			}
-			Expect(len(uq.In)).To(Equal(len(fakedArr)))
-			Expect(len(uq.Out)).To(Equal(0))
-			Expect(len(inQ)).To(Equal(len(fakedArr)))
-			Expect(len(outQ)).To(Equal(0))
+			Eventually(len(uq.In)).Should(Equal(len(fakedArr)))
+			Eventually(len(uq.Out)).Should(Equal(0))
+			Eventually(len(inQ)).Should(Equal(len(fakedArr)))
+			Eventually(len(outQ)).Should(Equal(0))
 
 			uq.Run()
 
 			// There's a fractional "wait" we have to do to let the queue feed through:
 			time.Sleep(1 * time.Millisecond)
 
-			Expect(len(uq.In)).To(Equal(0))
-			Expect(len(uq.Out)).To(Equal(len(fakedArr)))
-			Expect(len(inQ)).To(Equal(0))
-			Expect(len(outQ)).To(Equal(len(fakedArr)))
+			Eventually(len(uq.In)).Should(Equal(0))
+			Eventually(len(uq.Out)).Should(Equal(len(fakedArr)))
+			Eventually(len(inQ)).Should(Equal(0))
+			Eventually(len(outQ)).Should(Equal(len(fakedArr)))
 
 			for _, f := range fakedArr {
-				fakeOut := (<-outQ).(*Fake)
-				Expect(f).To(Equal(fakeOut))
+				Eventually(outQ).Should(Receive(Equal(f)))
 			}
 
-			Expect(len(uq.In)).To(Equal(0))
-			Expect(len(uq.Out)).To(Equal(0))
-			Expect(len(uq.feeder)).To(Equal(0))
-			Expect(len(inQ)).To(Equal(0))
-			Expect(len(outQ)).To(Equal(0))
+			Eventually(len(uq.In)).Should(Equal(0))
+			Eventually(len(uq.Out)).Should(Equal(0))
+			Eventually(len(uq.feeder)).Should(Equal(0))
+			Eventually(len(inQ)).Should(Equal(0))
+			Eventually(len(outQ)).Should(Equal(0))
 
 			close(done)
 		}, 0.2)
 
-		XIt("should dedupe repeated items from the In queue", func(done Done) {
+		It("should dedupe repeated items from the In queue", func(done Done) {
 			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 1)
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
@@ -201,6 +201,13 @@ var _ = Describe("QueueUnique", func() {
 				Out:       outQ,
 			}).Init()
 			dupes := 5
+			fakedArrLen := len(fakedArr)
+			fakedArrDupesOutQLen := (fakedArrLen * dupes) + cap(outQ)
+
+			// Because the outQ has a buffer-size, we have to fill it before we start the test
+			for i := 0; i < cap(outQ); i++ {
+				inQ <- &Fake{id: "filler", value: "filler"}
+			}
 
 			for i := 0; i < dupes; i++ {
 				for _, f := range fakedArr {
@@ -208,33 +215,39 @@ var _ = Describe("QueueUnique", func() {
 				}
 			}
 
-			Expect(len(uq.In)).To(Equal(len(fakedArr) * dupes))
-			Expect(len(uq.Out)).To(Equal(0))
-			Expect(len(inQ)).To(Equal(len(fakedArr) * dupes))
-			Expect(len(outQ)).To(Equal(0))
+			Eventually(len(uq.In)).Should(Equal(fakedArrDupesOutQLen))
+			Eventually(len(uq.Out)).Should(Equal(0))
+			Eventually(len(inQ)).Should(Equal(fakedArrDupesOutQLen))
+			Eventually(len(outQ)).Should(Equal(0))
 
 			uq.Run()
 
 			// There's a fractional "wait" we have to do to let the queue feed through:
 			time.Sleep(1 * time.Millisecond)
 
-			Expect(len(uq.uniqueIDs)).To(Equal(len(fakedArr)), "uq.uniqueIDs %#v", uq.uniqueIDs)
-			Expect(len(uq.In)).To(Equal(0))
-			Expect(len(inQ)).To(Equal(0))
+			Eventually(len(uq.uniqueIDs)).Should(Equal(fakedArrLen), "uq.uniqueIDs %#v", uq.uniqueIDs)
+			Eventually(len(uq.In)).Should(Equal(0))
+			Eventually(len(inQ)).Should(Equal(0))
 
-			for _, f := range fakedArr {
-				fakeOut := (<-outQ).(*Fake)
-				Expect(f).To(Equal(fakeOut))
+			// Empty-out the filler entries
+			for i := 0; i < cap(outQ); i++ {
+				Eventually(outQ).Should(Receive(Equal(
+					&Fake{id: "filler", value: "filler"},
+				)))
 			}
 
-			Expect(len(uq.uniqueIDs)).To(Equal(0), "uq.uniqueIDs %#v", uq.uniqueIDs)
-			Expect(len(uq.In)).To(Equal(0))
-			Expect(len(uq.Out)).To(Equal(0))
-			Expect(len(uq.feeder)).To(Equal(0))
-			Expect(len(inQ)).To(Equal(0))
-			Expect(len(outQ)).To(Equal(0))
+			for _, f := range fakedArr {
+				Eventually(outQ).Should(Receive(Equal(f)))
+			}
+
+			Eventually(len(uq.uniqueIDs)).Should(Equal(0), "uq.uniqueIDs %#v", uq.uniqueIDs)
+			Eventually(len(uq.In)).Should(Equal(0))
+			Eventually(len(uq.Out)).Should(Equal(0))
+			Eventually(len(uq.feeder)).Should(Equal(0))
+			Eventually(len(inQ)).Should(Equal(0))
+			Eventually(len(outQ)).Should(Equal(0))
 
 			close(done)
-		}, 1)
+		}, 2)
 	})
 })
