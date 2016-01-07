@@ -2,7 +2,7 @@ package queue
 
 import (
 	//"os"
-
+	"time"
 	log "gopkg.in/Sirupsen/logrus.v0"
 
 	. "github.com/onsi/ginkgo"
@@ -123,7 +123,7 @@ var _ = Describe("QueueUnique", func() {
 		})
 	})
 
-	var _ = Context("", func() {
+	var _ = Context("when Run()", func() {
 		fakedArr := [](*Fake){
 			&Fake{id: "1", value: "0123"},
 			&Fake{id: "2", value: "4567"},
@@ -132,35 +132,90 @@ var _ = Describe("QueueUnique", func() {
 		}
 		var inQ, outQ chan interface{}
 
-		BeforeEach(func() {
-			inQ, outQ = make(chan interface{}, 100), make(chan interface{})
-			uq = (&UniqueQueue{
-				MatcherID: matcherID,
-				In:        inQ,
-				Out:       outQ,
-			}).Init()
-			uq.Run()
-		})
-
 		AfterEach(func() {
 			close(inQ)
 			close(outQ)
 		})
 
-		It("test", func(done Done) {
+		It("should forward items from In to Out channels", func(done Done) {
+			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 100)
+			uq = (&UniqueQueue{
+				MatcherID: matcherID,
+				In:        inQ,
+				Out:       outQ,
+			}).Init()
+
 			for _, f := range fakedArr {
 				inQ <- f
 			}
-			//Expect(len(uq.In)).To(Equal(len(fakedArr)))
-			//Expect(len(uq.Out)).To(Equal(len(fakedArr)))
-			//Expect(len(uq.feeder)).To(Equal(len(fakedArr)))
-			//Expect(len(inQ)).To(Equal(len(fakedArr)))
-			//Expect(len(outQ)).To(Equal(len(fakedArr)))
+			Expect(len(uq.In)).To(Equal(len(fakedArr)))
+			Expect(len(uq.Out)).To(Equal(0))
+			Expect(len(inQ)).To(Equal(len(fakedArr)))
+			Expect(len(outQ)).To(Equal(0))
+
+			uq.Run()
+
+			// There's a fractional "wait" we have to do to let the queue feed through:
+			time.Sleep(1 * time.Millisecond)
+
+			Expect(len(uq.In)).To(Equal(0))
+			Expect(len(uq.Out)).To(Equal(len(fakedArr)))
+			Expect(len(inQ)).To(Equal(0))
+			Expect(len(outQ)).To(Equal(len(fakedArr)))
 
 			for _, f := range fakedArr {
 				fakeOut := (<-outQ).(*Fake)
 				Expect(f).To(Equal(fakeOut))
 			}
+
+			Expect(len(uq.In)).To(Equal(0))
+			Expect(len(uq.Out)).To(Equal(0))
+			Expect(len(uq.feeder)).To(Equal(0))
+			Expect(len(inQ)).To(Equal(0))
+			Expect(len(outQ)).To(Equal(0))
+
+			close(done)
+		}, 0.2)
+
+		It("should dedupe repeated items from the In queue", func(done Done) {
+			inQ, outQ = make(chan interface{}, 100), make(chan interface{}, 1)
+			uq = (&UniqueQueue{
+				MatcherID: matcherID,
+				In:        inQ,
+				Out:       outQ,
+			}).Init()
+			dupes := 5
+
+			for i := 0; i < dupes; i++ {
+				for _, f := range fakedArr {
+					inQ <- f
+				}
+			}
+
+			Expect(len(uq.In)).To(Equal(len(fakedArr) * dupes))
+			Expect(len(uq.Out)).To(Equal(0))
+			Expect(len(inQ)).To(Equal(len(fakedArr) * dupes))
+			Expect(len(outQ)).To(Equal(0))
+
+			uq.Run()
+
+			// There's a fractional "wait" we have to do to let the queue feed through:
+			time.Sleep(1 * time.Millisecond)
+
+			Expect(len(uq.uniqueIDs)).To(Equal(len(fakedArr)), "uq.uniqueIDs %#v", uq.uniqueIDs)
+			Expect(len(uq.In)).To(Equal(0))
+			Expect(len(inQ)).To(Equal(0))
+
+			for _, f := range fakedArr {
+				fakeOut := (<-outQ).(*Fake)
+				Expect(f).To(Equal(fakeOut))
+			}
+
+			Expect(len(uq.In)).To(Equal(0))
+			Expect(len(uq.Out)).To(Equal(0))
+			Expect(len(uq.feeder)).To(Equal(0))
+			Expect(len(inQ)).To(Equal(0))
+			Expect(len(outQ)).To(Equal(0))
 
 			close(done)
 		}, 0.2)
