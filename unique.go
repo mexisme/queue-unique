@@ -8,6 +8,7 @@ import (
 
 const (
 	DefaultQueueLength = 100
+	DefaultBufferSize  = 100
 )
 
 type InQueue chan interface{}
@@ -18,6 +19,7 @@ type UniqueQueue struct {
 	In          InQueue                  // Incoming Item queue
 	Out         OutQueue                 // Queue for workers
 	QueueLength int
+	BufferSize  int
 	uniqueIDs   map[string]bool  // Set of URLs, ordered by incoming
 	feeder      chan interface{} // Internal queue for determining when to pop an item off the `uniqueIDs` set
 	feederOk    bool
@@ -35,6 +37,9 @@ func (q *UniqueQueue) Init() *UniqueQueue {
 	if q.QueueLength == 0 {
 		q.QueueLength = DefaultQueueLength
 	}
+	if q.BufferSize == 0 {
+		q.BufferSize = DefaultBufferSize
+	}
 	if q.In == nil {
 		q.In = make(chan interface{}, q.QueueLength)
 	}
@@ -45,7 +50,7 @@ func (q *UniqueQueue) Init() *UniqueQueue {
 	q.feederOk = true
 	q.uniqueIDs = make(map[string]bool)
 	// The queue length should probably be configurable:
-	q.feeder = make(chan interface{}, q.QueueLength)
+	q.feeder = make(chan interface{}, q.BufferSize)
 
 	return q
 }

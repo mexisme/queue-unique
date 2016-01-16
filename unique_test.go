@@ -38,8 +38,40 @@ var _ = Describe("QueueUnique", func() {
 
 		Expect(uq.uniqueIDs).To(BeEmpty())
 		Expect(uq.feeder).To(BeEmpty())
-		// Expect(uq.In).To(BeEmpty())
-		// Expect(uq.Out).To(BeEmpty())
+	})
+
+	It("should initialise to default queue-length if not provided", func() {
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+		}).Init()
+
+		Expect(uq.QueueLength).To(Equal(DefaultQueueLength))
+	})
+
+	It("should initialise to provided queue-length", func() {
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+			QueueLength: 1001001,
+		}).Init()
+
+		Expect(uq.QueueLength).To(Equal(1001001))
+	})
+
+	It("should initialise to default buffer-size if not provided", func() {
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+		}).Init()
+
+		Expect(uq.BufferSize).To(Equal(DefaultBufferSize))
+	})
+
+	It("should initialise to provided buffer-size", func() {
+		uq = (&UniqueQueue{
+			MatcherID: matcherID,
+			BufferSize: 2112112,
+		}).Init()
+
+		Expect(uq.BufferSize).To(Equal(2112112))
 	})
 
 	It("should auto-create In queue when not provided", func() {
