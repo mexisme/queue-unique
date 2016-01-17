@@ -1,7 +1,34 @@
 * Tasks
-** TODO README.md
-** TODO Doc-comments
+** TODO Rename package --> uniqueQueue?
+** README.md [4/4]
+*** DONE Simple overview
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2016-01-18 Mon 10:08]
+    :END:
+*** DONE Use-case ?
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2016-01-18 Mon 10:08]
+    :END:
+*** DONE Brief example
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2016-01-18 Mon 10:08]
+    :END:
+*** DONE Link to godoc
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2016-01-26 Tue 08:55]
+    :END:
+** Doc-comments [2/3]
+*** DONE Add basic doc-comments to exported functions
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2016-01-18 Mon 10:08]
+    :END:
+*** DONE Add Package docs
+    :LOGBOOK:
+    - State "DONE"       from "TODO"       [2016-01-18 Mon 10:09]
+    :END:
+*** TODO Add Examples to package docs
 ** DONE Fix queue tests
    :LOGBOOK:
    - State "DONE"       from "TODO"       [2016-01-08 Fri 00:51]
    :END:
+
