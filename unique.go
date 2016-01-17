@@ -1,3 +1,11 @@
+/*
+queue.UniqueQueue is a relatively simple queuing library for Golang based on channels that only
+pushes values that are not already in the queue
+
+Items passed to the `In` queue are buffered then sent to the `Out` queue.
+Any incoming items that are already in the buffer (but haven't made it to the `Out` queue) are
+silently dropped.
+*/
 package queue
 
 import (
