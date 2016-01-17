@@ -14,11 +14,10 @@ action is only performed once per "cycle" through the queue.
 
 ## Example
 
-Create a struct-literal:
-
 ```
-inItems := []String {"0123", "4567", "89ab", "cdef"}
+inItems := []String {"0123", "4567", "89ab", "cdef", "0123", "4567"}
 
+// Create struct-literal
 uq = (&queue.UniqueQueue{
     MatcherID:   func(incoming interface{}) string {
       return incoming.(String)
@@ -27,12 +26,15 @@ uq = (&queue.UniqueQueue{
     BufferSize:  10,
 }).Init()
 
+// Start the background FIFO goroutine
 uq.Run()
 
+// Put some items into the queue
 for _, item := range inItems {
     uq.In <- item
 }
 
+// Read some items from the queue
 for item := range uq.Out {
     fmt.Printf("%v", item)
 }
