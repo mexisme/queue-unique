@@ -7,25 +7,49 @@ import (
 )
 
 const (
+	// DefaultQueueLength is the length (size) of `In` and `Out` queues (channels)
 	DefaultQueueLength = 100
+	// DefaultBufferSize is the size of the internal buffer from In --> Out
 	DefaultBufferSize  = 100
 )
 
+// InQueue is the type for `In` queues
 type InQueue chan interface{}
+// OutQueue is the type for `Out` queue
 type OutQueue chan interface{}
 
+// UniqueQueue is the containing type for set-style / unique queues
 type UniqueQueue struct {
-	MatcherID   func(interface{}) string // Callback to get an ID that can be used to identify whether an incoming item is already in the queue
-	In          InQueue                  // Incoming Item queue
-	Out         OutQueue                 // Queue for workers
+	// MatcherID is a callback function to get an ID that can be used to identify whether an
+	// incoming item is already in the queue
+	// No default, you *must* provide a callback, e.g:
+	// MatcherID: func(val interface{}) string {
+	// 	return val.String()
+	// }
+	MatcherID   func(interface{}) string
+	// In is the "Incoming Items" queue (channel)
+	In          InQueue
+	// Out is the "Outgoing Items" queue (channel)
+	Out         OutQueue
+	// QueueLength is Size for `In` and `Out` queues, when `Init()` creates them
+	// Defaults to `DefaultQueueLength`
 	QueueLength int
+	// BufferSize is the size for the internal buffer
+	// You usually want to make this large enough that your `In` queue doesn't block (much) and your
+	// `Out` queue is well-hydrated
+	// Defaults to `DefaultBufferSize`
 	BufferSize  int
-	uniqueIDs   map[string]bool  // Set of URLs, ordered by incoming
-	feeder      chan interface{} // Internal queue for determining when to pop an item off the `uniqueIDs` set
+	// Set of URLs, ordered by incoming
+	uniqueIDs   map[string]bool
+	// Internal buffer for determining when to pop an item off the `uniqueIDs` set
+	feeder      chan interface{}
 	feederOk    bool
 	wg          sync.WaitGroup
 }
 
+// Initialiser for a UniqueQueue struct-literal
+// Applies any Defaults
+// You must provide a MatcherID callback, all other values have 
 func (q *UniqueQueue) Init() *UniqueQueue {
 	// TODO: Implement this, probably using reflection (?):
 	// if q.MatcherID == nil {
@@ -55,6 +79,7 @@ func (q *UniqueQueue) Init() *UniqueQueue {
 	return q
 }
 
+// Run starts the background FIFO from `In` --> `Out`
 func (q *UniqueQueue) Run() {
 	if cap(q.Out) == 0 {
 		panic("Outgoing queue needs to be > 0 to avoid deadlocks")
@@ -63,15 +88,17 @@ func (q *UniqueQueue) Run() {
 	go q.fifo()
 }
 
+// Close arranges for the background FIFO to shut down
 func (q *UniqueQueue) Close() {
 	q.feederOk = false
 	q.wg.Wait()
 }
 
-// Push the data from one Q to the next, uniquifying on the URL
+// Push the data from `In` queue to `Out` queue, using an internal FIFO buffer.
+// Any incoming items that are already in the FIFO are dropped.
 func (q *UniqueQueue) fifo() {
 	defer q.wg.Done()
-	// If the In is closed, there's nothing incoming:
+	// If `In` is closed, there's nothing incoming:
 	defer close(q.feeder)
 
 	inQueueOk := true
@@ -92,7 +119,7 @@ func (q *UniqueQueue) fifo() {
 			// We don't want this to block the rest of the loop
 		}
 
-		// If the Out has room:
+		// If the `Out` has room:
 		if len(q.Out) < cap(q.Out) {
 			q.popTo(func(newItem interface{}) {
 				q.Out <- newItem
