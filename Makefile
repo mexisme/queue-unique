@@ -9,6 +9,8 @@ GOBUILD = $(GO) build
 GOTEST = ginkgo
 GOTEST_ARGS =
 
+GODEPS = github.com/onsi/ginkgo/ginkgo github.com/onsi/gomega
+
 #BUILDFILES = 
 
 ifdef BUILDFILES
@@ -32,6 +34,7 @@ watch: deps vet
 
 deps:
 	$(GO) get -v ./...
+	$(GO) get -v $(GODEPS)
 
 vet:
 	$(GO) vet -v ./...
