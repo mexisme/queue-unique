@@ -1,4 +1,5 @@
 * Tasks
+** TODO Invert the concerns?
 ** TODO Rename package --> uniqueQueue?
 ** README.md [4/4]
 *** DONE Simple overview
