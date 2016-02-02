@@ -40,23 +40,6 @@ var _ = Describe("QueueUnique", func() {
 		Expect(uq.feeder).To(BeEmpty())
 	})
 
-	It("should initialise to default queue-length if not provided", func() {
-		uq = (&UniqueQueue{
-			MatcherID: matcherID,
-		}).Init()
-
-		Expect(uq.QueueLength).To(Equal(DefaultQueueLength))
-	})
-
-	It("should initialise to provided queue-length", func() {
-		uq = (&UniqueQueue{
-			MatcherID: matcherID,
-			QueueLength: 1001001,
-		}).Init()
-
-		Expect(uq.QueueLength).To(Equal(1001001))
-	})
-
 	It("should initialise to default buffer-size if not provided", func() {
 		uq = (&UniqueQueue{
 			MatcherID: matcherID,
@@ -67,22 +50,11 @@ var _ = Describe("QueueUnique", func() {
 
 	It("should initialise to provided buffer-size", func() {
 		uq = (&UniqueQueue{
-			MatcherID: matcherID,
+			MatcherID:  matcherID,
 			BufferSize: 2112112,
 		}).Init()
 
 		Expect(uq.BufferSize).To(Equal(2112112))
-	})
-
-	It("should auto-create In queue when not provided", func() {
-		inQ := make(InQueue, 1000)
-		uq = (&UniqueQueue{
-			MatcherID: matcherID,
-		}).Init()
-
-		Expect(uq.In).ToNot(BeNil())
-		Expect(uq.In).To(BeEmpty())
-		Expect(uq.In).ToNot(Equal(inQ))
 	})
 
 	It("should use provided In queue", func() {
@@ -97,17 +69,6 @@ var _ = Describe("QueueUnique", func() {
 		Expect(uq.In).To(Equal(inQ))
 
 		//close(inQ)
-	})
-
-	It("should auto-create Out queue when not provided", func() {
-		outQ := make(OutQueue, 1000)
-		uq = (&UniqueQueue{
-			MatcherID: matcherID,
-		}).Init()
-
-		Expect(uq.Out).ToNot(BeNil())
-		Expect(uq.Out).To(BeEmpty())
-		Expect(uq.Out).ToNot(Equal(outQ))
 	})
 
 	It("should use provided Out queue", func() {
@@ -214,9 +175,32 @@ var _ = Describe("QueueUnique", func() {
 			&Fake{id: "4", value: "cdef"},
 		}
 
+		It("should panic when the In queue not made", func() {
+			uq = (&UniqueQueue{
+				MatcherID: matcherID,
+				Out:       make(OutQueue),
+			}).Init()
+
+			Expect(func() {
+				uq.Run()
+			}).To(Panic())
+		})
+
+		It("should panic when the Out queue not made", func() {
+			uq = (&UniqueQueue{
+				MatcherID: matcherID,
+				In:        make(InQueue),
+			}).Init()
+
+			Expect(func() {
+				uq.Run()
+			}).To(Panic())
+		})
+
 		It("should panic when the Out queue < 1", func() {
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
+				In:        make(InQueue),
 				Out:       make(OutQueue),
 			}).Init()
 
@@ -228,6 +212,8 @@ var _ = Describe("QueueUnique", func() {
 		It("should forward items from In to Out channels", func(done Done) {
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
+				In:        make(InQueue, 100),
+				Out:       make(OutQueue, 100),
 			}).Init()
 
 			for _, f := range fakedArr {
@@ -258,6 +244,7 @@ var _ = Describe("QueueUnique", func() {
 		It("should dedupe repeated items from the In queue", func(done Done) {
 			uq = (&UniqueQueue{
 				MatcherID: matcherID,
+				In:       make(InQueue, 100),
 				Out:       make(OutQueue, 1),
 			}).Init()
 			dupes := 5
