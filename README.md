@@ -28,7 +28,8 @@ uq = (&queue.UniqueQueue{
     MatcherID:   func(incoming interface{}) string {
       return incoming.(String)
     },
-    QueueLength: 1
+    In:          make(queue.InQueue, 100)
+    Out:         make(queue.OutQueue, 100)
     BufferSize:  10,
 }).Init()
 
