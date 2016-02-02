@@ -15,8 +15,6 @@ import (
 )
 
 const (
-	// DefaultQueueLength is the length (size) of `In` and `Out` queues (channels)
-	DefaultQueueLength = 100
 	// DefaultBufferSize is the size of the internal buffer from In --> Out
 	DefaultBufferSize  = 100
 )
@@ -39,9 +37,6 @@ type UniqueQueue struct {
 	In          InQueue
 	// Out is the "Outgoing Items" queue (channel)
 	Out         OutQueue
-	// QueueLength is Size for `In` and `Out` queues, when `Init()` creates them
-	// Defaults to `DefaultQueueLength`
-	QueueLength int
 	// BufferSize is the size for the internal buffer
 	// You usually want to make this large enough that your `In` queue doesn't block (much) and your
 	// `Out` queue is well-hydrated
@@ -66,17 +61,8 @@ func (q *UniqueQueue) Init() *UniqueQueue {
 	// 	}
 	// }
 
-	if q.QueueLength == 0 {
-		q.QueueLength = DefaultQueueLength
-	}
 	if q.BufferSize == 0 {
 		q.BufferSize = DefaultBufferSize
-	}
-	if q.In == nil {
-		q.In = make(chan interface{}, q.QueueLength)
-	}
-	if q.Out == nil {
-		q.Out = make(chan interface{}, q.QueueLength)
 	}
 
 	q.feederOk = true
@@ -89,9 +75,7 @@ func (q *UniqueQueue) Init() *UniqueQueue {
 
 // Run starts the background FIFO from `In` --> `Out`
 func (q *UniqueQueue) Run() {
-	if cap(q.Out) == 0 {
-		panic("Outgoing queue needs to be > 0 to avoid deadlocks")
-	}
+	q.preflightChecks()
 	q.wg.Add(1)
 	go q.fifo()
 }
@@ -100,6 +84,18 @@ func (q *UniqueQueue) Run() {
 func (q *UniqueQueue) Close() {
 	q.feederOk = false
 	q.wg.Wait()
+}
+
+func (q *UniqueQueue) preflightChecks() {
+	if q.In == nil {
+		panic("Incoming queue doesn't exist")
+	}
+	if q.Out == nil {
+		panic("Outgoing queue doesn't exist")
+	}
+	if cap(q.Out) == 0 {
+		panic("Outgoing queue needs to be > 0 to avoid deadlocks")
+	}
 }
 
 // Push the data from `In` queue to `Out` queue, using an internal FIFO buffer.
