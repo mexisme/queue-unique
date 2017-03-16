@@ -85,7 +85,7 @@ var _ = Describe("QueueUnique", func() {
 		close(outQ)
 	})
 
-	var _ = Context("when pushing to the feeder queue", func() {
+	Context("when pushing to the feeder queue", func() {
 		It("should panic when MatcherID has not been provided", func() {
 			uq = (&UniqueQueue{}).Init()
 			Expect(func() {
@@ -93,7 +93,7 @@ var _ = Describe("QueueUnique", func() {
 			}).To(Panic())
 		})
 
-		var _ = Context("", func() {
+		Context("", func() {
 			BeforeEach(func() {
 				uq = (&UniqueQueue{
 					MatcherID: matcherID,
@@ -106,7 +106,7 @@ var _ = Describe("QueueUnique", func() {
 				close(done)
 			}, 0.2)
 
-			var _ = Context("", func() {
+			Context("", func() {
 				BeforeEach(func() {
 					uq.pushUnique(faked)
 				})
@@ -133,7 +133,7 @@ var _ = Describe("QueueUnique", func() {
 		})
 	})
 
-	var _ = Context("when popping from the feeder queue", func() {
+	Context("when popping from the feeder queue", func() {
 		var outFake *Fake
 
 		BeforeEach(func() {
@@ -167,7 +167,7 @@ var _ = Describe("QueueUnique", func() {
 		})
 	})
 
-	var _ = Context("when Run()", func() {
+	Context("when Run()", func() {
 		fakedArr := [](*Fake){
 			&Fake{id: "1", value: "0123"},
 			&Fake{id: "2", value: "4567"},
