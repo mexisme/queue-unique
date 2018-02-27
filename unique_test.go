@@ -4,7 +4,7 @@ import (
 	//"os"
 	"time"
 
-	log "gopkg.in/Sirupsen/logrus.v0"
+	log "github.com/sirupsen/logrus"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

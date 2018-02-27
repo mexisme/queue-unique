@@ -11,7 +11,7 @@ package queue
 import (
 	"sync"
 
-	log "gopkg.in/Sirupsen/logrus.v0"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
